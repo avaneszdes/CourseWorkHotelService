@@ -1,39 +1,35 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
+using HotelServices.UserCommands.Commands.AddClient;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
+using MediatR;
+using ApplicationContext.Entities;
+using System.Collections.Generic;
+using HotelServices.UserCommands.Queries;
 
 namespace CourseWorkHotelService.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
-    public class WeatherForecastController : ControllerBase
+    [Route("api/client")]
+    public class ClientController : Controller
     {
-        private static readonly string[] Summaries = new[]
+        private readonly IMediator _mediator;
+        
+        public ClientController(IMediator mediatr)
         {
-            "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-        };
-
-        private readonly ILogger<WeatherForecastController> _logger;
-
-        public WeatherForecastController(ILogger<WeatherForecastController> logger)
-        {
-            _logger = logger;
+            _mediator = mediatr;
         }
 
-        [HttpGet]
-        public IEnumerable<WeatherForecast> Get()
+        [HttpPost]
+        public async Task<long> AddClientAsync(AddClientCommand client)
         {
-            var rng = new Random();
-            return Enumerable.Range(1, 5).Select(index => new WeatherForecast
-                {
-                    Date = DateTime.Now.AddDays(index),
-                    TemperatureC = rng.Next(-20, 55),
-                    Summary = Summaries[rng.Next(Summaries.Length)]
-                })
-                .ToArray();
+            return await _mediator.Send(client);
+        }
+
+
+        [HttpGet]
+        public async Task<List<User>> GetAllClientAsync()
+        {
+            return await _mediator.Send(new GetAllClientsQuery());
         }
     }
 }

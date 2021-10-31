@@ -1,15 +1,16 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Reflection;
+using ApplicationContext;
+using HotelServiceRepository;
+using HotelServiceRepository.Interfaces;
+using HotelServiceRepository.Repositories;
+using HotelServices.UserCommands.Commands.AddClient;
+using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 
 namespace CourseWorkHotelService
@@ -23,14 +24,42 @@ namespace CourseWorkHotelService
 
         public IConfiguration Configuration { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddDbContext<HotelContext>(options =>
+            {
+                options.UseOracle("User Id=C##VLADISLAV_AVANESOV;Password=VLADISLAV_AVANESOV;Data Source=localhost",
+                    x => x.MigrationsAssembly("CourseWorkHotelService"));
+            });
+
+            services.AddControllersWithViews()
+                .AddNewtonsoftJson(options =>
+                    options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore
+                );
+
+            services.AddMediatR(Assembly.GetExecutingAssembly());
+            services.AddMediatR(Assembly.GetExecutingAssembly(), typeof(AddClientCommand).Assembly);
+
+            services.AddTransient<IUserRepository, UserRepository>();
+            services.AddTransient<IHotelRepository, HotelRepository>();
+
 
             services.AddControllers();
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "CourseWorkHotelService", Version = "v1" });
+                c.SwaggerDoc("v1", new OpenApiInfo {Title = "CourseWorkHotelService", Version = "v1"});
+            });
+
+
+            services.AddCors(options =>
+            {
+                options.AddPolicy("HotelService",
+                    builder =>
+                    {
+                        builder.WithOrigins("*")
+                            .AllowAnyHeader()
+                            .AllowAnyMethod();
+                    });
             });
         }
 
@@ -45,14 +74,18 @@ namespace CourseWorkHotelService
             }
 
             app.UseHttpsRedirection();
+            app.UseStaticFiles();
 
             app.UseRouting();
+            app.UseCors("HotelService");
 
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapControllers();
+                endpoints.MapControllerRoute(
+                    name: "default",
+                    pattern: "{controller}/{action=Index}/{id?}");
             });
         }
     }
